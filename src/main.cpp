@@ -10,6 +10,8 @@ const char* password = "XXXX";
 const char* doorbell_server = "10.10.10.10";
 int doorbell_port = 5050;
 
+unsigned long ontime = 0;
+
 void setup_wifi()
 {
   delay(10);
@@ -38,7 +40,6 @@ void setup_wifi()
   Serial.println(WiFi.localIP());
 }
 
-// Entry point for the example
 void setup(void)
 {
   Serial.begin(115200);
@@ -50,19 +51,31 @@ void loop(void)
 {
   if(digitalRead(inputPin) == HIGH)
   {
-    Serial.println("DingDong");
-    digitalWrite(LED_BUILTIN, LOW);
-
-    if (espClient.connect(doorbell_server, doorbell_port))
+    if (ontime == 0)
     {
-      espClient.println("GET /ring HTTP/1.1");
-      espClient.println("Host: " + String(doorbell_server));
-      espClient.println("Connection: close");
-      espClient.println();
+      ontime = millis();
     }
+    else if (millis() - ontime > 10)
+    {
+      Serial.println("DingDong");
+      digitalWrite(LED_BUILTIN, LOW);
 
-    delay(1000);
-    digitalWrite(LED_BUILTIN, HIGH);
+      if (espClient.connect(doorbell_server, doorbell_port))
+      {
+        espClient.println("GET /ring HTTP/1.1");
+        espClient.println("Host: " + String(doorbell_server));
+        espClient.println("Connection: close");
+        espClient.println();
+      }
+
+      delay(1000);
+      digitalWrite(LED_BUILTIN, HIGH);
+      ontime = 0;
+    }
+  }
+  else
+  {
+    ontime = 0;
   }
 }
 
